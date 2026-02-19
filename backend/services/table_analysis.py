@@ -54,7 +54,8 @@ class TableAnalysisService:
                         failed += 1
                         continue
                     
-                    chunks = self._get_document_chunks(firestore_doc_id)
+                    # Pass both doc_id and doc_title (name) for fallback search
+                    chunks = self._get_document_chunks(firestore_doc_id, doc_name)
                     
                     if not chunks:
                         logger.warning(f"[{job_id}] No chunks found for document {doc.get('id')}")
@@ -127,12 +128,14 @@ class TableAnalysisService:
             
             for doc in documents:
                 try:
+                    doc_name = doc.get("name", "unknown")
                     firestore_doc_id = doc.get("firestoreDocId") or doc.get("id")
                     if not firestore_doc_id:
                         failed += 1
                         continue
                     
-                    chunks = self._get_document_chunks(firestore_doc_id)
+                    # Pass both doc_id and doc_title for fallback search
+                    chunks = self._get_document_chunks(firestore_doc_id, doc_name)
                     
                     if not chunks:
                         failed += 1
@@ -141,7 +144,7 @@ class TableAnalysisService:
                     context = self._build_context(chunks, max_chunks=3, max_chars=3000)
                     
                     # Ask the question using Elastic inference
-                    answer = self._ask_question(doc.get("name", ""), context, question)
+                    answer = self._ask_question(doc_name, context, question)
                     
                     # Store custom column result
                     self.firestore.update_analysis_custom_column(
@@ -179,9 +182,10 @@ class TableAnalysisService:
                 "error": str(e)
             })
     
-    def _get_document_chunks(self, doc_id: str) -> List[Dict[str, Any]]:
-        """Get document chunks from Elasticsearch"""
+    def _get_document_chunks(self, doc_id: str, doc_title: str = None) -> List[Dict[str, Any]]:
+        """Get document chunks from Elasticsearch by doc_id or doc_title"""
         try:
+            # First, try by doc_id
             search_body = {
                 "query": {
                     "term": {"doc_id": doc_id}
@@ -197,10 +201,30 @@ class TableAnalysisService:
             )
             
             hits = response.get("hits", {}).get("hits", [])
+            
+            # If no results by doc_id, try by doc_title
+            if not hits and doc_title:
+                logger.info(f"No chunks found by doc_id, trying doc_title: {doc_title}")
+                search_body = {
+                    "query": {
+                        "term": {"doc_title.keyword": doc_title}
+                    },
+                    "_source": ["text", "page", "doc_title"],
+                    "size": 10,
+                    "sort": [{"page": "asc"}]
+                }
+                
+                response = self.elasticsearch.client.search(
+                    index=self.elasticsearch.index_name,
+                    body=search_body
+                )
+                
+                hits = response.get("hits", {}).get("hits", [])
+            
             return [hit["_source"] for hit in hits]
             
         except Exception as e:
-            logger.error(f"Failed to get chunks for {doc_id}: {e}")
+            logger.error(f"Failed to get chunks for {doc_id} / {doc_title}: {e}")
             return []
     
     def _build_context(self, chunks: List[Dict], max_chunks: int = 5, max_chars: int = 4000) -> str:

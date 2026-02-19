@@ -49,9 +49,10 @@ export async function GET(
     }
     
     // Fetch analysis results from backend (if available)
+    // Use projectId since that's what batch-analyze stores results under
     let analysisResults: any[] = [];
     try {
-      const response = await fetch(`${BACKEND_URL}/api/table/results/${vaultId}`);
+      const response = await fetch(`${BACKEND_URL}/api/table/results/${projectId}`);
       if (response.ok) {
         analysisResults = await response.json();
         console.log("[API] Retrieved", analysisResults.length, "analysis results");
@@ -93,7 +94,16 @@ export async function DELETE(
   try {
     const { vaultId } = await params;
     
-    const response = await fetch(`${BACKEND_URL}/api/table/results/${vaultId}`, {
+    // Get vault to find projectId (same as GET)
+    const vault = await client.vault.findUnique({
+      where: { id: vaultId },
+      select: { projectId: true },
+    });
+    
+    const projectId = vault?.projectId || vaultId;
+    
+    // Delete using projectId since that's how results are stored
+    const response = await fetch(`${BACKEND_URL}/api/table/results/${projectId}`, {
       method: "DELETE",
     });
     
