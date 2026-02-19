@@ -28,6 +28,20 @@ build/
 uploads/
 processed/
 
+# Runtime data
+backend/data/
+metadata/
+
+# Database files
+*.db
+*.sqlite
+
+# GCP credentials
+backend/gcp-credentials.json
+
+# Test scripts
+test-elasticsearch.js
+
 # OS
 .DS_Store
 Thumbs.db

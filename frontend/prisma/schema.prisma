@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  clerkId      String    @unique
+  name         String
+  email        String    @unique
+  profileImage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  Projects     Project[] @relation("OwnedProjects")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String   @default("Untitled")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  isDeleted   Boolean  @default(false)
+
+  // Relations
+  User        User     @relation("OwnedProjects", fields: [userId], references: [id], onDelete: Cascade)
+  Vault       Vault?   @relation("ProjectVault")
+}
+
+model Vault {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  name      String   @default("Evidence")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  Project   Project    @relation("ProjectVault", fields: [projectId], references: [id], onDelete: Cascade)
+  Folders   Folder[]   @relation("VaultFolders")
+  Documents Document[] @relation("VaultDocuments")
+}
+
+model Folder {
+  id             String   @id @default(cuid())
+  vaultId        String
+  name           String
+  path           String
+  parentFolderId String?
+  depth          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  Vault          Vault      @relation("VaultFolders", fields: [vaultId], references: [id], onDelete: Cascade)
+  ParentFolder   Folder?    @relation("FolderHierarchy", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  ChildFolders   Folder[]   @relation("FolderHierarchy")
+  Documents      Document[] @relation("FolderDocuments")
+}
+
+model Document {
+  id               String    @id @default(cuid())
+  vaultId          String
+  folderId         String?
+  name             String
+  originalName     String
+  gcsPath          String
+  gcsBucket        String    @default("jurisscope-uploads")
+  mimeType         String
+  size             BigInt
+  status           String    @default("pending")
+  uploadedAt       DateTime  @default(now())
+  processedAt      DateTime?
+  firestoreDocId   String?
+
+  // Relations
+  Vault            Vault              @relation("VaultDocuments", fields: [vaultId], references: [id], onDelete: Cascade)
+  Folder           Folder?            @relation("FolderDocuments", fields: [folderId], references: [id], onDelete: SetNull)
+  Analysis         DocumentAnalysis?  @relation("DocumentAnalysis")
+}
+
+model DocumentAnalysis {
+  id        String   @id @default(cuid())
+  documentId String   @unique
+  vaultId    String
+  
+  date               String?
+  documentType       String?
+  summary            String?
+  author             String?
+  language           String?
+  customColumns      String   @default("{}")
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  Document   Document @relation("DocumentAnalysis", fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model AnalysisJob {
+  id          String   @id @default(cuid())
+  vaultId     String
+  type        String
+  template    String?
+  columnName  String?
+  question    String?
+  status      String   @default("pending")
+  progress    Int      @default(0)
+  totalDocs   Int
+  processedDocs Int    @default(0)
+  error       String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+}
