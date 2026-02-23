@@ -653,7 +653,7 @@ export default function ChatInterface({ project, vault }: ChatInterfaceProps) {
           <div className="flex-1 flex items-center justify-center">
             <div className="max-w-2xl px-6 text-center">
               <h1 className="text-3xl font-semibold text-foreground mb-4">
-                {project.title === "Untitled" ? "Clause Search" : project.title}
+                {project.title === "Untitled" ? "JurisScope" : project.title}
               </h1>
               <p className="text-muted-foreground mb-8">
                 Ask me anything about your documents. I can help you find information, analyze content, and answer questions with citations.

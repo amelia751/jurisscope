@@ -35,13 +35,13 @@ export function ProjectSidebar({
         >
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
             <Avatar className="h-10 w-10 rounded-full">
-              <AvatarImage src={"/clause.png"} alt={`clause-logo`} />
-              <AvatarFallback className="rounded-lg">CL</AvatarFallback>
+              <AvatarImage src={"/clause.png"} alt={`jurisscope-logo`} />
+              <AvatarFallback className="rounded-lg">JS</AvatarFallback>
             </Avatar>
           </div>
 
           <span className="truncate text-primary text-3xl font-semibold">
-            Clause
+            JurisScope
           </span>
         </SidebarMenuButton>
       </SidebarHeader>
