@@ -1,22 +1,15 @@
-# LinkedIn Post - Elasticsearch Agent Builder Hackathon
+Legal research tools are great at finding documents, but they struggle with actually answering questions across dozens of files while tracking precise citations. Most just return search results and call it a day.
 
----
+So when I saw Elastic was hosting a hackathon celebrating Agent Builder, a framework for building AI agents with search and reasoning, I thought it'd be a great chance to tackle legal document analysis. Born JurisScope.
 
-AI search tools are great at finding documents, but they struggle with complex legal research where you need to reason across dozens of files, track citations, and actually answer questions like "What GDPR violations does this company have?" Most tools just return relevant chunks and call it a day.
+Built on Elasticsearch 8.11 serverless, JurisScope answers legal questions by orchestrating three agents in sequence. I created a demo case around a fictional AI hiring bias lawsuit (DataSure vs TechNova) with 16 documents including GDPR regulations, internal Slack messages, emails, and meeting notes.
 
-So when I saw Elastic was hosting a hackathon celebrating Agent Builder, a framework that lets you build multi-step AI agents that actually reason and use tools, I thought it'd be a great chance to tackle real legal research workflows. Born JurisScope.
+When a user asks a question like "What GDPR violations did TechNova commit?", the search agent runs hybrid search (BM25 + vector embeddings) to find relevant chunks across all documents, then reranks them using Jina's reranker model. The answer agent takes those top chunks and generates a comprehensive response using Claude 4.5 Sonnet via Elasticsearch's inference API. Finally, the citation agent extracts precise snippets and page numbers for every claim, building clickable references that jump directly to the highlighted text in the source PDF.
 
-Built on Elasticsearch 8.11 serverless, JurisScope turns legal document analysis into intelligent multi-agent orchestration. I created a demo case around a fictional AI hiring bias lawsuit (DataSure vs TechNova) with 16 documents including GDPR regulations, internal Slack messages, emails, and meeting notes.
+For the table feature, I added a column generator where you can select documents and extract structured data using natural language prompts like "What legal violations are mentioned?" The system processes each document and builds a table in real-time.
 
-When a user asks a question, the orchestrator agent first decides which specialized agent to call. The retrieval agent uses Elasticsearch's hybrid search (BM25 + vector embeddings) to find relevant chunks across all documents. The citation agent then validates every claim and tracks exact snippets with page numbers. For compliance questions, the compliance agent runs ES|QL queries to extract structured data like violation types and penalty estimates.
+The whole workflow is logged with agent steps and latency tracking. Search typically takes 150-300ms, answer generation 2-4 seconds, and citation extraction is near-instant. Elasticsearch's speed made it possible to search across thousands of chunks while maintaining citation accuracy.
 
-The agents communicate through a workflow system, passing context between steps. All of this runs on Agent Builder's framework, which handles tool selection, state management, and multi-hop reasoning automatically.
-
-For the table analysis feature, I built a custom column generator that lets users select documents and extract structured attributes using natural language prompts. Want to extract "What legal violations are mentioned?" across 10 documents? The agent processes each one and builds a table in real-time.
-
-Overall, this project taught me how to orchestrate multiple agents, implement hybrid search with reranking, and design agent workflows that actually solve multi-step problems instead of just returning search results. Elasticsearch's speed made it possible to search across thousands of chunks in milliseconds while maintaining citation accuracy.
-
-🔗 [GitHub repo link]
-🎥 [Demo video link]
+Overall, this project taught me how to chain agents in a workflow, implement hybrid search with reranking, and build a legal research tool that actually answers questions instead of just returning search results.
 
 #ElasticAgentBuilder #Hackathon
