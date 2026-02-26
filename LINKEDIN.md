@@ -2,63 +2,21 @@
 
 ---
 
-🚀 Just submitted **JurisScope** to the Elasticsearch Agent Builder Hackathon!
+AI search tools are great at finding documents, but they struggle with complex legal research where you need to reason across dozens of files, track citations, and actually answer questions like "What GDPR violations does this company have?" Most tools just return relevant chunks and call it a day.
 
-We built an AI-powered legal research workbench that combines multi-step reasoning with Elasticsearch's hybrid search to help legal teams analyze complex case documents, regulations, and internal communications.
+So when I saw Elastic was hosting a hackathon celebrating Agent Builder, a framework that lets you build multi-step AI agents that actually reason and use tools, I thought it'd be a great chance to tackle real legal research workflows. Born JurisScope.
 
-**What makes it different:**
-- Multi-agent orchestration using Elasticsearch Agent Builder
-- Hybrid search (BM25 + vector) across 16 document types
-- Intelligent citation tracking with precise snippet references
-- Structured data extraction for compliance analysis
+Built on Elasticsearch 8.11 serverless, JurisScope turns legal document analysis into intelligent multi-agent orchestration. I created a demo case around a fictional AI hiring bias lawsuit (DataSure vs TechNova) with 16 documents including GDPR regulations, internal Slack messages, emails, and meeting notes.
 
-Instead of single-prompt answers, JurisScope agents reason across multiple documents, retrieve relevant context, and execute tasks like GDPR compliance checks or bias audits — all backed by Elasticsearch's speed and scale.
+When a user asks a question, the orchestrator agent first decides which specialized agent to call. The retrieval agent uses Elasticsearch's hybrid search (BM25 + vector embeddings) to find relevant chunks across all documents. The citation agent then validates every claim and tracks exact snippets with page numbers. For compliance questions, the compliance agent runs ES|QL queries to extract structured data like violation types and penalty estimates.
 
-Built in 5 weeks for the @Elastic Agent Builder Hackathon. Competing for $20,000 in prizes alongside 2,100+ developers worldwide.
+The agents communicate through a workflow system, passing context between steps. All of this runs on Agent Builder's framework, which handles tool selection, state management, and multi-hop reasoning automatically.
 
-Check out the demo case: DataSure vs TechNova — a fictional AI hiring bias lawsuit involving GDPR violations and EU AI Act compliance.
+For the table analysis feature, I built a custom column generator that lets users select documents and extract structured attributes using natural language prompts. Want to extract "What legal violations are mentioned?" across 10 documents? The agent processes each one and builds a table in real-time.
 
----
-
-**Tech stack:**
-- Elasticsearch 8.11 (serverless)
-- Agent Builder framework
-- Next.js 15 + FastAPI
-- ES|QL for structured queries
-- Hybrid search + reranking
-
----
-
-Huge thanks to the Elastic team for building such a powerful agent framework. Excited to see where this goes!
+Overall, this project taught me how to orchestrate multiple agents, implement hybrid search with reranking, and design agent workflows that actually solve multi-step problems instead of just returning search results. Elasticsearch's speed made it possible to search across thousands of chunks in milliseconds while maintaining citation accuracy.
 
 🔗 [GitHub repo link]
 🎥 [Demo video link]
 
-#ElasticAgentBuilder #Hackathon #AI #LegalTech #Elasticsearch #MachineLearning #AIAgents #DevRel
-
----
-
-**Alternative shorter version:**
-
-🎯 Submitted JurisScope to the @Elastic Agent Builder Hackathon!
-
-Built a legal AI workbench that uses multi-agent orchestration + Elasticsearch hybrid search to analyze case documents, regulations, and compliance data.
-
-Agents retrieve context, reason across documents, and execute multi-step tasks — like GDPR audits or bias detection — all in real-time.
-
-5 weeks of work. $20K in prizes. 2,100+ participants. Let's see what happens!
-
-#ElasticAgentBuilder #Hackathon #AI #LegalTech
-
----
-
-**Tags to include:**
-- @Elastic
-- @elastic_devs (on X/Twitter)
-- Tag any team members who contributed
-- Tag your university/organization if applicable
-
-**Post timing:**
-- Post before the Feb 27, 2026 @ 1:00pm EST deadline
-- Consider posting again after judging results
-- Share the demo video in comments for better engagement
+#ElasticAgentBuilder #Hackathon
