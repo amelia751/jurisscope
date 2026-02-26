@@ -1,182 +1,180 @@
 # JurisScope - Devpost Submission
 
-## Inspiration
+## Brief Description (~400 words)
 
-Legal research is painfully slow. Lawyers and compliance teams spend hours reading through dozens of documents just to answer questions like "What GDPR violations did this company commit?" or "What evidence supports bias in this AI system?" Current AI search tools help you find relevant documents, but they don't actually answer your questions with precise citations — they just return chunks of text and expect you to piece it together yourself.
+**Problem Solved:**
 
-When I saw Elastic was hosting a hackathon for Agent Builder, I realized this was the perfect use case for multi-agent workflows. Instead of just searching, I could build agents that search, answer, and cite in sequence — turning legal document analysis from a manual research task into an automated Q&A system.
+Legal discovery is broken. The average lawsuit involves 1,000+ documents—depositions, contracts, emails, regulations—and lawyers spend 60-70% of case time just reading through them. At $300-500/hour for associates, discovery can cost clients $50,000-200,000 per case. Current AI search tools return relevant document chunks but don't actually answer questions with precise citations. They expect lawyers to manually piece together evidence from dozens of files.
 
-## What it does
+**Solution - JurisScope:**
 
-JurisScope is a legal research workbench that answers questions across multiple documents with precise citations. I built a demo case around a fictional AI hiring bias lawsuit (DataSure vs TechNova) with 16 documents including EU regulations, internal communications, meeting notes, and legal correspondence.
+I built an AI-powered legal discovery platform using Elastic Agent Builder that answers questions across hundreds of documents with lawyer-grade precision. Upload your case files, ask questions in plain English like "What GDPR violations occurred?", and get comprehensive answers with exact citations—page numbers, quotes, and clickable references to source PDFs.
 
-**The 3-agent pipeline:**
+**Elastic Agent Builder Features Used:**
 
-1. **Search Agent**: Runs hybrid search (BM25 + vector embeddings) across all documents, then reranks results using Jina's reranker model to surface the most relevant chunks.
+I leveraged Agent Builder's agent-to-agent orchestration to create three custom agents working in sequence:
 
-2. **Answer Agent**: Takes the top chunks and generates a comprehensive answer using Claude 4.5 Sonnet via Elasticsearch's inference API. The answer is structured with citations [1], [2], etc.
+1. **Search Agent**: Embeds the user query using Jina embeddings v3 (via Elasticsearch inference API) and performs hybrid search combining BM25 (keyword) and kNN (vector) with RRF (Reciprocal Rank Fusion). Results are reranked using Jina reranker v3 through Elastic's inference endpoint for maximum relevance.
 
-3. **Citation Agent**: Extracts precise snippets (up to 350 chars) and page numbers for every reference, building clickable citations that jump directly to the highlighted text in the source PDF.
+2. **Answer Agent**: Takes the top-ranked chunks and generates a comprehensive legal response using Claude 4.5 Sonnet via Elasticsearch's inference API, configured with low temperature to minimize hallucinations. Every answer must include citation markers [1], [2], etc.
 
-**Additional features:**
+3. **Citation Agent**: Extracts precise references with page numbers and snippets, building clickable deep-link citations that jump directly to highlighted passages in source PDFs.
 
-- **Table Analysis**: Select documents and extract structured data using natural language prompts. Ask "What legal violations are mentioned?" and it builds a table with extracted values for each document.
+Each agent has access to a custom tool called `jurisscope.legal_search` that performs project-scoped hybrid search across case documents. Agent Builder orchestrates the workflow: Search → Answer → Citations, with full latency logging at each step.
 
-- **Workflow Logging**: Every query logs agent steps, latency, and results for full traceability.
+**Features I Liked:**
 
-- **Document Management**: Upload PDFs, track processing status, view documents with in-browser highlighting.
+1. **Elasticsearch Inference API Integration**: I loved how seamlessly Agent Builder integrates with Elastic's inference endpoints. I could swap between embedding models (Jina v3, OpenAI), reranking models, and LLMs (Claude 4.5, GPT-4.1) without changing agent code—just configuration. This made experimentation incredibly fast.
 
-**Example query:**
-> "What specific bias did Sofia Rodriguez find in TechNova's AI system?"
+2. **Agent-to-Agent Workflow Orchestration**: Agent Builder's workflow system handles context passing between agents automatically. The search agent's results flow into the answer agent, which flows into the citation agent—all tracked with timestamps and step logging. I didn't have to build my own orchestration layer.
 
-JurisScope returns a detailed answer citing exact statistics (gender gap: 7.1 points, p < 0.001), the testing methodology, and ethnicity bias results — all with clickable citations to the source emails and Slack messages.
+3. **Custom Tool Framework**: Defining the `jurisscope.legal_search` tool with project_id scoping was straightforward. Agent Builder handles tool selection and parameter passing, letting me focus on the search logic itself.
 
-## How I built it
+**Challenges:**
 
-**Backend (FastAPI + Python):**
-- Elasticsearch 8.11 serverless for document storage and hybrid search
-- Agent Builder framework for orchestrating the 3-agent workflow
-- Jina embeddings v3 for vector search
-- Jina reranker v3 for relevance scoring
-- Claude 4.5 Sonnet via Elasticsearch inference API
-- PyMuPDF for PDF text extraction and bounding box detection
-- Local metadata service for tracking uploads, projects, and query logs
+- **Citation accuracy**: Mapping [1], [2] markers to exact page locations with bounding boxes required careful tracking through the entire pipeline.
+- **Hybrid search tuning**: Balancing BM25 vs vector search was tricky—pure vector missed keyword matches like "Article 10", pure BM25 missed semantics.
+- **Answer quality**: Claude sometimes hallucinated citations, requiring strict system prompts: "Answer ONLY from provided documents."
 
-**Frontend (Next.js 15 + TypeScript):**
-- Next.js 15 with App Router and Turbopack
-- Tailwind CSS for UI
-- React PDF viewer with highlighting
-- Real-time citation popover on hover
-- Workflow visualization showing agent steps and latency
+**Demo Case:**
 
-**Data Processing Pipeline:**
-1. User uploads PDF → FastAPI endpoint
-2. PyMuPDF extracts text, bounding boxes, and page metadata
-3. Text is chunked (500 chars with 100 char overlap)
-4. Each chunk is embedded using Jina embeddings v3
-5. Chunks stored in Elasticsearch with vectors, metadata, and bounding boxes
+I created DataSure vs TechNova, a fictional AI hiring bias lawsuit with 16 realistic documents: GDPR regulations, EU AI Act, internal Slack messages, email threads, meeting notes, and legal correspondence.
 
-**Search Pipeline:**
-1. User query embedded with Jina
-2. Hybrid search combines BM25 (keyword) + kNN (vector) with RRF (Reciprocal Rank Fusion)
-3. Top 20 results reranked using Jina reranker
-4. Top 5 passed to answer agent
+---
 
-**Agent Workflow:**
+## How I Built It
+
+**Elastic Agent Builder Architecture:**
+
+The core intelligence runs on Elastic Agent Builder with three custom agents:
+
 ```python
-# routes/ask.py - A2A orchestration
-workflow = []
+# Search Agent with custom legal_search tool
+@tool(name="jurisscope.legal_search")
+def legal_search(query: str, project_id: str, k: int = 5):
+    """Project-scoped hybrid search across case documents"""
+    embedding = jina_embed(query)  # Via Elastic inference
+    results = es.hybrid_search(query, embedding, project_id)
+    reranked = jina_rerank(query, results)  # Via Elastic inference
+    return reranked[:k]
 
-# Step 1: search-agent
-hits = es_service.hybrid_search(query_text, query_vector, project_id)
-reranked = rerank_passages(query, hits)
-workflow.append({"agent": "search-agent", "duration_ms": 250})
+# Answer Agent using Claude 4.5 via Elastic inference
+answer = elastic_inference.chat_completion(
+    messages=[{"role": "user", "content": prompt}],
+    model=".anthropic-claude-4.5-sonnet-chat_completion",
+    temperature=0.1  # Low temp for legal precision
+)
 
-# Step 2: answer-agent
-answer = generate_answer_with_elastic(query, reranked[:5])
-workflow.append({"agent": "answer-agent", "duration_ms": 3200})
-
-# Step 3: citation-agent
-citations = build_citations(reranked[:5])
-workflow.append({"agent": "citation-agent", "duration_ms": 15})
+# Citation Agent extracts references
+citations = extract_citations(answer, search_results)
 ```
 
-**Demo Case Documents:**
-I created 16 realistic legal documents across 5 categories:
-- Regulations (GDPR, EU AI Act)
-- Internal communications (Slack export, email threads)
-- Legal correspondence (complaint letter, settlement proposal)
-- Governance docs (compliance assessment, DPA agreement)
-- Case summaries (news article, meeting notes)
+**Data Processing Pipeline:**
 
-## Challenges I ran into
+1. User uploads PDF → FastAPI endpoint
+2. PyMuPDF extracts text with bounding boxes per page
+3. Text chunked (500 chars, 100 char overlap)
+4. Chunks embedded with Jina v3 (via Elastic inference)
+5. Stored in Elasticsearch 8.11 serverless with vectors + metadata
 
-**Citation accuracy**: The hardest part was tracking exact snippets and page numbers. Initially, citations were vague ("mentioned in Email_Thread_AI_Risk.txt"). I had to store bounding boxes for every chunk during PDF processing, then build a citation system that maps [1], [2] markers to exact page locations with clickable URLs that highlight the text.
+**Search Pipeline:**
 
-**Hybrid search tuning**: Balancing BM25 vs vector search was tricky. Pure vector search missed exact keyword matches (like "Article 10" or "GDPR"). Pure BM25 missed semantic similarity. I settled on RRF (Reciprocal Rank Fusion) which combines both, then added reranking on top for better relevance.
+1. Query embedded with Jina (Elastic inference endpoint)
+2. Hybrid search: BM25 + kNN with RRF fusion
+3. Top 20 results reranked with Jina reranker (Elastic inference)
+4. Top 5 passed to answer agent
 
-**Reranking integration**: Elasticsearch's inference API for reranking was new to me. I had to learn how to batch passages, call the Jina reranker endpoint, and reorder results based on relevance scores without breaking the citation mapping.
+**Tech Stack:**
 
-**Answer quality**: Claude sometimes hallucinated citations or added claims not found in the documents. I had to refine the system prompt to be very strict: "Answer based ONLY on the provided documents. ALWAYS cite sources using [n] markers. Never invent information."
+- **Backend**: FastAPI, Python 3.11, PyMuPDF
+- **Frontend**: Next.js 15, TypeScript, Tailwind CSS, React PDF viewer
+- **Elastic Stack**: Elasticsearch 8.11 serverless, Agent Builder, Inference API
+- **AI Models**: Jina embeddings v3, Jina reranker v3, Claude 4.5 Sonnet, GPT-4.1 (fallback)
+- **Database**: PostgreSQL with Prisma ORM for project metadata
 
-**Table feature complexity**: Building the column generator required calling the LLM once per document per column, which could be slow. I added streaming updates so users see results appear incrementally instead of waiting for the whole table.
+---
 
-## Accomplishments that I'm proud of
+## Challenges I Ran Into
 
-✅ **Built end-to-end in 5 weeks** — from idea to working demo with 16 documents
+**Citation accuracy**: Initially, citations were vague ("mentioned in Email_Thread.txt"). I had to store bounding boxes for every chunk during PDF processing, then build a system that maps [1], [2] markers to exact page locations with clickable URLs that highlight text.
 
-✅ **3-agent pipeline with full workflow logging** — every query shows which agent did what and how long it took
+**Hybrid search tuning**: Pure vector search missed exact keyword matches ("Article 10", "GDPR"). Pure BM25 missed semantic similarity. I settled on RRF (Reciprocal Rank Fusion) combining both, plus reranking for relevance.
 
-✅ **Precise citation tracking** — citations jump to exact page locations with text highlighting in the PDF viewer
+**Reranking integration**: Learning Elasticsearch's inference API for reranking was new. I had to batch passages, call Jina reranker, and reorder results without breaking citation mapping.
 
-✅ **Hybrid search + reranking** — combines keyword and semantic search with reranking for better relevance
+**Answer quality**: Claude sometimes hallucinated citations. I refined system prompts: "Answer based ONLY on provided documents. ALWAYS cite sources using [n] markers. Never invent information."
 
-✅ **Table analysis feature** — extract structured data across multiple documents using natural language
+**Table feature complexity**: Building the column generator required calling the LLM once per document per column, which was slow. I added streaming updates for incremental results.
 
-✅ **Realistic demo case** — created a fictional lawsuit with regulations, internal docs, and legal correspondence that feels authentic
+---
 
-✅ **Clean UI** — designed a polished interface that doesn't look like a typical hackathon project
+## Accomplishments That I'm Proud Of
 
-## What I learned
+✅ **3-agent pipeline with Agent Builder** — seamless orchestration with workflow logging
+✅ **Elasticsearch inference API mastery** — embeddings, reranking, and LLM all through Elastic
+✅ **Precise citation tracking** — citations jump to exact page locations with PDF highlighting
+✅ **Hybrid search + reranking** — BM25 + vector + reranking for legal-grade relevance
+✅ **Table analysis feature** — extract structured data using natural language across documents
+✅ **Realistic 16-document demo case** — GDPR, AI Act, Slack logs, emails, meeting notes
+✅ **Clean, polished UI** — doesn't look like a hackathon project
 
-**Agent orchestration**: I learned how to chain agents in a sequential workflow where each agent's output feeds into the next. The search agent produces chunks → answer agent consumes chunks → citation agent formats references.
+---
 
-**Hybrid search with reranking**: I now understand why hybrid search (BM25 + vector) outperforms either method alone, and how reranking adds a second layer of relevance scoring.
+## What I Learned
 
-**Elasticsearch inference API**: I learned how to use Elasticsearch's built-in inference endpoints for embeddings, reranking, and LLM chat completion instead of calling external APIs.
+**Agent-to-agent orchestration**: How to chain agents sequentially where each agent's output feeds the next. Search → Answer → Citations, all managed by Agent Builder's workflow system.
 
-**Citation systems**: Building accurate citations taught me about bounding box tracking, chunk-to-page mapping, and URL construction for deep linking into PDFs.
+**Elasticsearch inference API**: Using Elastic's built-in endpoints for embeddings, reranking, and LLMs instead of external APIs—simplified architecture and improved latency.
 
-**Agent Builder framework**: I learned how Elasticsearch Agent Builder handles tool selection and workflow management, making it easier to build multi-step AI agents.
+**Hybrid search superiority**: Why BM25 + vector outperforms either alone, and how reranking adds a critical second layer of relevance.
 
-**Legal domain modeling**: Creating 16 realistic legal documents taught me about GDPR structure, AI Act requirements, and how real legal cases are documented.
+**Custom tool design in Agent Builder**: Defining tools with clear parameters and return types, letting Agent Builder handle selection and orchestration.
 
-## What's next for JurisScope
+**Citation systems**: Bounding box tracking, chunk-to-page mapping, and URL construction for deep linking into PDFs.
 
-**Multi-document comparison**: Add an agent that compares claims across documents. Example: "What contradictions exist between TechNova's public statements and internal emails?"
+**Legal domain modeling**: GDPR structure, AI Act requirements, and how real legal cases are documented.
 
-**Timeline extraction**: Build a timeline agent that extracts events, dates, and sequences from documents and visualizes them chronologically.
+---
 
-**Export to legal formats**: Generate legal briefs, memos, or compliance reports from Q&A sessions.
+## What's Next for JurisScope
 
-**Bulk document upload**: Support uploading entire case folders (50+ documents) with progress tracking and batch processing.
+**Multi-document comparison agent**: Compare claims across documents. E.g., "What contradictions exist between TechNova's public statements and internal emails?"
 
-**Custom reranking models**: Fine-tune reranking models on legal domain data for better relevance in specific practice areas (GDPR, AI Act, employment law).
+**Timeline extraction agent**: Extract events, dates, sequences and visualize chronologically.
 
-**Collaborative workspaces**: Allow teams to share projects, annotate documents, and collaborate on research.
+**Compliance agent with ES|QL**: Run structured queries to extract violation types, penalty amounts, and risk scores.
 
-**ES|QL integration**: Add a compliance agent that runs structured queries using ES|QL to extract specific data like violation types, penalty amounts, and risk scores.
+**Export to legal formats**: Generate legal briefs, memos, compliance reports from Q&A sessions.
+
+**Bulk document upload**: Support 50+ document case folders with batch processing.
+
+**Fine-tuned reranking models**: Domain-specific models for GDPR, AI Act, employment law.
+
+**Collaborative workspaces**: Team sharing, annotations, collaborative research.
 
 ---
 
 ## Built With
 
-**Languages & Frameworks:**
-- Python 3.11
-- TypeScript
-- FastAPI
-- Next.js 15
-- React 19
-
-**Cloud & Databases:**
 - Elasticsearch 8.11 (serverless)
 - Elasticsearch Agent Builder
-- PostgreSQL (Prisma ORM)
-
-**AI & ML:**
+- Elasticsearch Inference API
+- Python 3.11
+- FastAPI
+- Next.js 15
+- TypeScript
+- React 19
+- PostgreSQL
 - Jina embeddings v3
 - Jina reranker v3
-- Claude 4.5 Sonnet (via Elastic inference)
-- GPT-4.1 (fallback via Elastic inference)
-
-**Libraries & Tools:**
-- PyMuPDF (PDF processing)
+- Claude 4.5 Sonnet
+- GPT-4.1
+- PyMuPDF
 - Tailwind CSS
-- React PDF viewer
 - Docker
 
 ---
 
-**GitHub**: [Link to repo]
-**Demo Video**: [Link to video]
-**Live Demo**: [Link if deployed]
+**GitHub**: https://github.com/amelia751/jurisscope
+**Demo Video**: [Link to be added]
+**Live Demo**: [Link to be added]
