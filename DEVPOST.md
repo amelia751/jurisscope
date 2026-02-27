@@ -136,6 +136,12 @@ citations = extract_citations(answer, search_results)
 
 ---
 
+## How Agent Builder Advanced My Skills
+
+Agent Builder eliminated the need to manually configure agent orchestration, tool selection, and workflow management. Having embeddings, reranking, and LLMs all within Elasticsearch's inference API meant I didn't need to manage external API calls or build custom integration layers. This let me focus on building the legal search logic itself rather than infrastructure. The tight integration between Elasticsearch's search capabilities and Agent Builder made it natural to build context-driven agents that actually understand document relevance instead of just returning generic search results.
+
+---
+
 ## What's Next for JurisScope
 
 **Multi-document comparison agent**: Compare claims across documents. E.g., "What contradictions exist between TechNova's public statements and internal emails?"
