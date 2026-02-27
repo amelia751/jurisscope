@@ -1,0 +1,777 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\section{JurisScope Testing Guide}\label{jurisscope-testing-guide}
+
+\textbf{Case:} DataSure vs TechNova --- AI hiring bias, GDPR \& EU AI
+Act compliance \textbf{Documents loaded:} 16 files across regulations,
+internal docs, legal correspondence, case summaries \& communications
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Case Overview}\label{case-overview}
+
+TechNova, a Berlin-based AI startup, developed \textbf{InsightPredict}
+--- an AI hiring and performance prediction platform deployed to 127
+client organisations covering \textasciitilde450,000 employees and
+candidates across the EU. Internal testing (July--August 2024) and an
+independent investigation by DataSure, a Brussels-based advocacy group,
+found statistically significant bias:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2444}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3778}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3778}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Bias Type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Internal Finding
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+DataSure Finding
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Gender (resume scoring) & −7.1 pts (male vs female names) & −8.3 pts
+(−11.5 pts senior roles) \\
+Age (performance prediction) & Lower scores for 50+ employees &
+Corroborated \\
+African/Middle Eastern names & −5.8 pts & −3 to −6 pts \\
+Asian names & −2.3 pts & Corroborated \\
+Eastern European names & −3.1 pts & Corroborated \\
+\end{longtable}
+}
+
+DataSure threatened regulatory complaints in 5 jurisdictions unless
+TechNova settled. Settlement negotiations are underway (cap: €12M).
+Potential regulatory exposure: €50--100M+.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Part 1: Discover Tab --- Testing
+Guide}\label{part-1-discover-tab-testing-guide}
+
+The Discover tab is your AI research assistant. Ask natural-language
+questions and it will retrieve answers with citations from the uploaded
+documents.
+
+\begin{quote}
+\textbf{Tip:} After each answer, hover over citation numbers
+\textbf{{[}1{]}}, \textbf{{[}2{]}} etc. to see the exact source snippet.
+\end{quote}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Quick-Start Questions (Try These
+First)}\label{quick-start-questions-try-these-first}
+
+These give an immediate sense of the system's capabilities:
+
+\begin{verbatim}
+What are the main legal issues in the DataSure vs TechNova case?
+\end{verbatim}
+
+\begin{verbatim}
+What bias did Sofia Rodriguez find in TechNova's AI system?
+\end{verbatim}
+
+\begin{verbatim}
+What settlement terms is TechNova willing to accept?
+\end{verbatim}
+
+\begin{verbatim}
+What are the key obligations for high-risk AI systems under the AI Act?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{GDPR \& Data Protection}\label{gdpr-data-protection}
+
+\begin{verbatim}
+What are the key principles of GDPR for personal data processing?
+\end{verbatim}
+
+\begin{verbatim}
+How does GDPR define personal data and what categories exist?
+\end{verbatim}
+
+\begin{verbatim}
+What are the requirements for valid consent under GDPR?
+\end{verbatim}
+
+\begin{verbatim}
+What are the penalties for GDPR violations?
+\end{verbatim}
+
+\begin{verbatim}
+What is the difference between a data controller and processor under GDPR?
+\end{verbatim}
+
+\begin{verbatim}
+When can special categories of personal data be processed?
+\end{verbatim}
+
+\begin{verbatim}
+What does GDPR Article 5(1)(a) require and how does TechNova allegedly violate it?
+\end{verbatim}
+
+\begin{verbatim}
+How does GDPR Article 22 apply to TechNova's automated scoring system?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{EU AI Act}\label{eu-ai-act}
+
+\begin{verbatim}
+What is considered a high-risk AI system under the AI Act?
+\end{verbatim}
+
+\begin{verbatim}
+What are the AI Act requirements for high-risk AI systems?
+\end{verbatim}
+
+\begin{verbatim}
+What does Article 10 of the AI Act require about training data?
+\end{verbatim}
+
+\begin{verbatim}
+What risk management procedures does Article 9 of the AI Act require?
+\end{verbatim}
+
+\begin{verbatim}
+What does the AI Act say about human oversight requirements in Article 14?
+\end{verbatim}
+
+\begin{verbatim}
+How does the AI Act address transparency requirements?
+\end{verbatim}
+
+\begin{verbatim}
+How does the AI Act regulate AI systems used in employment decisions?
+\end{verbatim}
+
+\begin{verbatim}
+What penalties does the AI Act impose for violations?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{TechNova's Bias --- Technical Deep
+Dive}\label{technovas-bias-technical-deep-dive}
+
+\begin{verbatim}
+What statistical evidence did Sofia Rodriguez present about gender bias in the resume scoring model?
+\end{verbatim}
+
+\begin{verbatim}
+What were the ethnicity bias test results for African, Middle Eastern, and Eastern European names?
+\end{verbatim}
+
+\begin{verbatim}
+What is the "garbage in, garbage out" problem as it applies to TechNova's training data?
+\end{verbatim}
+
+\begin{verbatim}
+Why does TechNova's BERT-based NLP pipeline produce biased scores even when names are not an explicit feature?
+\end{verbatim}
+
+\begin{verbatim}
+What is the fairness-accuracy tradeoff and how does it apply to TechNova's situation?
+\end{verbatim}
+
+\begin{verbatim}
+What fairness constraints did TechNova deploy on September 1, 2024 and what was the impact?
+\end{verbatim}
+
+\begin{verbatim}
+What is the 78% correlation figure mentioned in the case and why is it legally significant?
+\end{verbatim}
+
+\begin{verbatim}
+What specific bias testing methodology did DataSure use to identify discrimination?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{TechNova Internal
+Communications}\label{technova-internal-communications}
+
+\begin{verbatim}
+What were the key findings from the #ml-engineering-private Slack channel discussions in July 2024?
+\end{verbatim}
+
+\begin{verbatim}
+When did TechNova first become aware of bias in its AI system?
+\end{verbatim}
+
+\begin{verbatim}
+What did Dr. Michael Zhang say about the root cause of TechNova's BERT embedding bias?
+\end{verbatim}
+
+\begin{verbatim}
+What were the four options Sofia Rodriguez proposed for fixing the training data bias?
+\end{verbatim}
+
+\begin{verbatim}
+What concerns did Elena Kovács raise in the email thread about GDPR and AI Act violations?
+\end{verbatim}
+
+\begin{verbatim}
+What did Sarah Mitchell advise about documentation and attorney-client privilege?
+\end{verbatim}
+
+\begin{verbatim}
+What did Jennifer Hartley decide as the company's path forward after the bias was confirmed?
+\end{verbatim}
+
+\begin{verbatim}
+What internal discussions show TechNova's awareness of compliance issues before DataSure's complaint?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Legal Strategy \&
+Settlement}\label{legal-strategy-settlement}
+
+\begin{verbatim}
+What are the main allegations in DataSure's complaint letter?
+\end{verbatim}
+
+\begin{verbatim}
+What settlement terms were proposed in the mediation discussions?
+\end{verbatim}
+
+\begin{verbatim}
+How did TechNova respond to DataSure's initial complaint letter?
+\end{verbatim}
+
+\begin{verbatim}
+What are the three strategic options TechNova discussed for responding to DataSure?
+\end{verbatim}
+
+\begin{verbatim}
+What is the estimated total regulatory penalty exposure for TechNova?
+\end{verbatim}
+
+\begin{verbatim}
+What did external counsel Dr. Friedrich Bauer recommend as the best legal strategy?
+\end{verbatim}
+
+\begin{verbatim}
+What conditions did Sarah Mitchell say TechNova should NOT agree to in a settlement?
+\end{verbatim}
+
+\begin{verbatim}
+What is the estimated probability of enforcement action for each AI Act article violation?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Case Timeline \& People}\label{case-timeline-people}
+
+\begin{verbatim}
+Who are the key individuals mentioned in the TechNova case and what are their roles?
+\end{verbatim}
+
+\begin{verbatim}
+What is the chronological sequence of events in the TechNova case from July to October 2024?
+\end{verbatim}
+
+\begin{verbatim}
+What decisions were made at the September 18, 2024 compliance strategy meeting?
+\end{verbatim}
+
+\begin{verbatim}
+Who attended the September 18 emergency meeting and what was each person's position?
+\end{verbatim}
+
+\begin{verbatim}
+What actions did Marcus Thompson assign as immediate priorities after the August emergency meeting?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Cross-Document Analysis}\label{cross-document-analysis}
+
+These questions require the system to synthesise across multiple
+documents --- a strong test of retrieval quality:
+
+\begin{verbatim}
+How does TechNova's AI system compliance compare to GDPR and AI Act requirements?
+\end{verbatim}
+
+\begin{verbatim}
+What evidence shows TechNova violated both GDPR and the AI Act?
+\end{verbatim}
+
+\begin{verbatim}
+What contradictions exist between TechNova's public statements and internal documents?
+\end{verbatim}
+
+\begin{verbatim}
+How do the internal Slack and email communications relate to the external lawsuit claims?
+\end{verbatim}
+
+\begin{verbatim}
+Compare the requirements in the Data Processing Agreement to TechNova's actual documented practices.
+\end{verbatim}
+
+\begin{verbatim}
+What legal frameworks apply to TechNova's InsightPredict hiring AI system?
+\end{verbatim}
+
+\begin{verbatim}
+If TechNova implemented all recommended risk mitigation measures, would they be compliant with both GDPR and the AI Act?
+\end{verbatim}
+
+\begin{verbatim}
+What evidence in internal documents supports or contradicts DataSure's bias allegations?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Risk \& Compliance}\label{risk-compliance}
+
+\begin{verbatim}
+What risk mitigation measures did TechNova implement and what gaps remain?
+\end{verbatim}
+
+\begin{verbatim}
+What data governance issues were identified in TechNova's practices?
+\end{verbatim}
+
+\begin{verbatim}
+What fundamental rights impact assessment should TechNova have conducted?
+\end{verbatim}
+
+\begin{verbatim}
+What compliance gaps exist under Article 9, 10, and 14 of the AI Act?
+\end{verbatim}
+
+\begin{verbatim}
+What human oversight mechanisms were implemented after the bias was discovered?
+\end{verbatim}
+
+\begin{verbatim}
+What are the potential financial consequences for TechNova based on identified violations?
+\end{verbatim}
+
+\begin{verbatim}
+How could TechNova modify their AI system to meet EU compliance standards?
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Targeted Feature Tests}\label{targeted-feature-tests}
+
+Use these to validate specific system behaviours:
+
+\textbf{Citation accuracy}
+
+\begin{verbatim}
+What specific articles of GDPR and the AI Act did TechNova allegedly violate?
+\end{verbatim}
+
+\emph{Expected: Multiple article citations with exact article numbers
+from both regulations}
+
+\textbf{Multi-document synthesis}
+
+\begin{verbatim}
+Compare what TechNova stated publicly versus what internal Slack messages and emails reveal.
+\end{verbatim}
+
+\emph{Expected: Citations from the news article, Slack export, and email
+thread}
+
+\textbf{Precise numerical retrieval}
+
+\begin{verbatim}
+What specific statistics are mentioned about bias in TechNova's AI system — score differentials, p-values, and accuracy metrics?
+\end{verbatim}
+
+\emph{Expected: Exact numbers --- 7.1 pts gender gap, p \textless{}
+0.001, F1 0.78 to 0.75, etc.}
+
+\textbf{Temporal/timeline retrieval}
+
+\begin{verbatim}
+What is the exact sequence of bias discovery, internal escalation, and external complaint between July and October 2024?
+\end{verbatim}
+
+\emph{Expected: Specific dates from Slack, emails, and meeting notes}
+
+\textbf{Entity extraction}
+
+\begin{verbatim}
+List all named individuals in the case, their organisations, and their roles.
+\end{verbatim}
+
+\emph{Expected: Full cast from multiple documents --- Sofia Rodriguez,
+Jennifer Hartley, Dr.~Anne-Marie Rousseau, etc.}
+
+\textbf{Elasticsearch hybrid search}
+
+\begin{verbatim}
+What are the data protection requirements for AI systems processing personal data in employment contexts?
+\end{verbatim}
+
+\emph{Tests BM25 + vector hybrid retrieval across both the GDPR
+regulation and AI Act}
+
+\textbf{Elastic Agent Builder integration}
+
+\begin{verbatim}
+Search for all documents mentioning "consent" in the context of GDPR.
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Part 2: Table Tab --- Generating Columns
+Guide}\label{part-2-table-tab-generating-columns-guide}
+
+The Table tab lets you select documents from your vault and extract
+structured attributes as columns. Each row is a document; each column is
+a field the AI extracts.
+
+Below are suggested column prompts organised by analysis type. Mix and
+match based on your use case.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Document Classification
+Columns}\label{document-classification-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Document Type & What type of document is this? (e.g.~regulation,
+internal memo, email thread, legal correspondence, news article, meeting
+minutes) \\
+Document Date & What is the date of this document? \\
+Authoring Party & Who authored or produced this document? \\
+Classification Level & What confidentiality classification is assigned
+to this document? (e.g.~Public, Confidential, Attorney-Client
+Privileged) \\
+Primary Subject & What is the main topic or subject of this document in
+one sentence? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Legal \& Regulatory Analysis
+Columns}\label{legal-regulatory-analysis-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Regulations Cited & Which EU regulations or legal frameworks are cited
+or referenced? (e.g.~AI Act, GDPR, EU Employment Equality Directives) \\
+Specific Articles Cited & List the specific article numbers and
+regulations mentioned (e.g.~GDPR Article 5(1)(a), AI Act Article 10). \\
+Legal Violations Alleged & What legal violations or compliance gaps does
+this document allege or identify? \\
+Violation Severity & Rate the severity of any violations mentioned:
+Critical / High / Medium / Low \\
+Legal Strategy Recommended & What legal strategy or course of action
+does this document recommend? \\
+Applicable Penalty & What financial penalty or legal consequence is
+mentioned or estimated? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Bias \& Technical Findings
+Columns}\label{bias-technical-findings-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Bias Type Identified & What types of bias are identified or discussed?
+(e.g.~gender, age, ethnicity, name-based) \\
+Bias Score / Metric & What specific quantitative bias metrics are
+mentioned? (e.g.~score differentials, p-values, F1 scores) \\
+Protected Characteristics & Which protected characteristics are affected
+according to this document? \\
+Root Cause of Bias & What does this document identify as the root cause
+of the bias? \\
+Mitigation Measures & What technical or procedural bias mitigation
+measures are described? \\
+Residual Risk After Fix & Does this document acknowledge remaining bias
+after mitigation? What level? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Parties \& People Columns}\label{parties-people-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Key Parties & Who are the key parties or organisations mentioned? \\
+Key Individuals & List the named individuals mentioned and their
+roles. \\
+Decision Makers & Who are identified as decision-makers or authority
+figures in this document? \\
+Whistleblower / Escalator & Is there a person who raised or escalated
+the issue? Who? \\
+External Parties & What external organisations, regulators, or counsel
+are referenced? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Settlement \& Risk
+Columns}\label{settlement-risk-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Settlement Terms & What settlement terms or conditions are discussed? \\
+Financial Exposure & What is the total financial exposure or cost
+estimate mentioned? \\
+Regulatory Risk Level & How does this document characterise the
+regulatory risk? (High / Medium / Low + reason) \\
+Claimant Demands & What does the claimant or advocacy group demand in
+this document? \\
+Recommended Response & What response or negotiating position does this
+document recommend? \\
+Walk-Away Conditions & Are any non-negotiable or walk-away conditions
+mentioned? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Human Oversight \& AI Governance
+Columns}\label{human-oversight-ai-governance-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Human Oversight Mechanism & What human oversight mechanisms are
+described or required? \\
+Automation Bias Risk & Does this document discuss automation bias or
+over-reliance on AI recommendations? \\
+Override Rate & Is there a human override rate mentioned? What is it? \\
+Explainability Features & What explainability or transparency features
+are described? \\
+AI Governance Gaps & What governance or oversight gaps does this
+document identify? \\
+Fairness-by-Design & Does this document describe any fairness-by-design
+principles or constraints? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Timeline \& Action
+Columns}\label{timeline-action-columns}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.3810}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Column Name
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prompt
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Key Date & What is the most important date mentioned in this
+document? \\
+Deadline Mentioned & Is any deadline or time constraint mentioned? What
+is it? \\
+Action Items & What specific action items or next steps are assigned in
+this document? \\
+Responsible Person & Who is assigned responsibility for actions in this
+document? \\
+Completion Status & Does the document indicate whether any actions have
+been completed? \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{Suggested Column Sets by Use
+Case}\label{suggested-column-sets-by-use-case}
+
+\textbf{Regulatory Audit Review} --- apply to all 16 documents: -
+Document Type, Document Date, Regulations Cited, Specific Articles
+Cited, Legal Violations Alleged, Violation Severity, Applicable Penalty
+
+\textbf{Bias Evidence Review} --- apply to internal docs +
+communications: - Bias Type Identified, Bias Score / Metric, Protected
+Characteristics, Root Cause of Bias, Mitigation Measures, Residual Risk
+After Fix
+
+\textbf{Settlement Due Diligence} --- apply to legal correspondence +
+meeting notes: - Key Parties, Settlement Terms, Financial Exposure,
+Claimant Demands, Recommended Response, Walk-Away Conditions
+
+\textbf{Internal Investigation Timeline} --- apply to Slack + email +
+meeting notes: - Document Date, Key Individuals, Whistleblower /
+Escalator, Key Date, Deadline Mentioned, Action Items, Responsible
+Person
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Tips for Best Results}\label{tips-for-best-results}
+
+\textbf{Good Discover questions:} - Specific and grounded:
+\texttt{"What\ does\ Article\ 10\ of\ the\ AI\ Act\ require\ about\ training\ data\ examination?"}
+- Cross-reference:
+\texttt{"How\ do\ internal\ emails\ contradict\ TechNova\textquotesingle{}s\ public\ statements?"}
+- Request synthesis:
+\texttt{"Compare\ the\ bias\ numbers\ in\ DataSure\textquotesingle{}s\ report\ versus\ TechNova\textquotesingle{}s\ internal\ findings"}
+
+\textbf{Questions that may struggle:} - Too broad:
+\texttt{"Tell\ me\ everything\ about\ GDPR"} - Outside the documents:
+\texttt{"What\ happened\ after\ October\ 2024?"} - Requires external
+data: \texttt{"What\ is\ the\ current\ AI\ Act\ enforcement\ status?"}
+
+\textbf{Good Table columns:} - Ask for a single, clear attribute per
+column - Use consistent value types (dates as dates, ratings as labels,
+lists as comma-separated) - For numeric columns, specify the unit or
+scale expected
+
+\end{document}
