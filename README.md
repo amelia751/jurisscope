@@ -31,7 +31,7 @@ Extract metadata from documents into a spreadsheet-like view.
 - **Export**: Download analysis as CSV
 
 ### 🔀 A2A Orchestration — Multi-Agent Workflow
-Every query runs through a 3-agent pipeline, visible in the UI:
+Every query runs through a 3-agent pipeline:
 
 ```
 search-agent → answer-agent → citation-agent
@@ -49,16 +49,16 @@ search-agent → answer-agent → citation-agent
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js 15)                    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                       │
-│  │ Discover │  │  Vault   │  │  Table   │                       │
-│  │  (Q&A)   │  │ (Upload) │  │(Analysis)│                       │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘                       │
-└───────┼─────────────┼─────────────┼─────────────────────────────┘
+│                    Frontend (Next.js 15 on Cloud Run)            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
+│  │ Discover │  │  Vault   │  │  Table   │  │  Cloud SQL   │    │
+│  │  (Q&A)   │  │ (Upload) │  │(Analysis)│  │ (PostgreSQL) │    │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────────────┘    │
+└───────┼─────────────┼─────────────┼────────────────────────────┘
         │             │             │
         ▼             ▼             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Backend (FastAPI)                           │
+│                   Backend (FastAPI on Cloud Run)                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                  A2A Orchestration                        │   │
 │  │  search-agent → answer-agent → citation-agent            │   │
@@ -111,7 +111,18 @@ search-agent → answer-agent → citation-agent
 
 ---
 
-## Quick Start
+## Deployed Demo
+
+The application is deployed on Google Cloud Run:
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | https://jurisscope-frontend-663948694366.us-central1.run.app |
+| **Backend** | https://jurisscope-backend-663948694366.us-central1.run.app |
+
+---
+
+## Quick Start (Local Development)
 
 ### Prerequisites
 
@@ -122,7 +133,7 @@ search-agent → answer-agent → citation-agent
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/your-repo/jurisscope.git
+git clone https://github.com/amelia-lam/jurisscope.git
 cd jurisscope
 ```
 
@@ -138,6 +149,16 @@ ELASTICSEARCH_API_KEY=your-api-key
 # Backend
 NEXT_PUBLIC_API_URL=http://localhost:8005
 BACKEND_URL=http://localhost:8005
+
+# Database (for frontend - local development uses SQLite)
+DATABASE_URL=file:./prisma/dev.db
+```
+
+For the `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8005
+DATABASE_URL=file:./dev.db
 ```
 
 ### 3. Start Backend
