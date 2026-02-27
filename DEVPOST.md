@@ -156,22 +156,7 @@ citations = extract_citations(answer, search_results)
 
 ## Built With
 
-- Elasticsearch 8.11 (serverless)
-- Elasticsearch Agent Builder
-- Elasticsearch Inference API
-- Python 3.11
-- FastAPI
-- Next.js 15
-- TypeScript
-- React 19
-- PostgreSQL
-- Jina embeddings v3
-- Jina reranker v3
-- Claude 4.5 Sonnet
-- GPT-4.1
-- PyMuPDF
-- Tailwind CSS
-- Docker
+elasticsearch, agent-builder, elasticsearch-inference-api, python, fastapi, nextjs, typescript, react, postgresql, prisma, jina-embeddings, jina-reranker, claude-ai, anthropic, openai, pymupdf, tailwindcss, docker, serverless
 
 ---
 
