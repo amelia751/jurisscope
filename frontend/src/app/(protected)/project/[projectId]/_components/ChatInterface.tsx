@@ -81,12 +81,21 @@ interface ChatInterfaceProps {
   vault: Vault | null;
 }
 
+interface AgentStep {
+  agent: string;
+  action: string;
+  duration_ms: number;
+  result: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   references?: Reference[];
+  workflow?: AgentStep[];
+  latency_ms?: number;
 }
 
 interface Reference {
@@ -442,6 +451,8 @@ export default function ChatInterface({ project, vault }: ChatInterfaceProps) {
         content: processedContent, // Use processed content with sequential citations
         timestamp: new Date(),
         references: reorderedReferences.length > 0 ? reorderedReferences : undefined,
+        workflow: data.workflow || undefined,
+        latency_ms: data.latency_ms || undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

@@ -76,6 +76,7 @@ export default function ProjectView({ project, vault }: ProjectViewProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [pendingUploadInfo, setPendingUploadInfo] = useState<{files: {name: string}[], timestamp: number} | null>(null);
   // Use documents from vault props (already fetched from backend in page.tsx)
   const [documents, setDocuments] = useState<Document[]>(vault?.Documents || []);
   
@@ -85,14 +86,41 @@ export default function ProjectView({ project, vault }: ProjectViewProps) {
       setDocuments(vault.Documents);
     }
   }, [vault?.Documents]);
+
+  // Check for pending uploads from create-page
+  useEffect(() => {
+    const pendingKey = `pending_upload_${project.id}`;
+    const pendingData = sessionStorage.getItem(pendingKey);
+    
+    if (pendingData) {
+      try {
+        const data = JSON.parse(pendingData);
+        // Only show if less than 5 minutes old
+        if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+          setPendingUploadInfo(data);
+          setIsUploading(true);
+          setUploadProgress(`Uploading ${data.files.length} file(s) in background...`);
+          
+          toast({
+            title: "Upload in Progress",
+            description: `${data.files.length} file(s) are being processed. The page will update automatically.`,
+          });
+        }
+        // Clear the storage
+        sessionStorage.removeItem(pendingKey);
+      } catch (e) {
+        console.error("Error parsing pending upload data:", e);
+      }
+    }
+  }, [project.id, toast]);
   
-  // Auto-refresh every 3 seconds if there are processing/pending documents
+  // Auto-refresh every 3 seconds if there are processing/pending documents OR pending uploads
   useEffect(() => {
     const hasProcessingDocs = documents.some(doc => 
       doc.status === "processing" || doc.status === "pending"
     );
     
-    if (hasProcessingDocs) {
+    if (hasProcessingDocs || pendingUploadInfo) {
       const interval = setInterval(async () => {
         // Refresh from backend API
         try {
@@ -111,6 +139,20 @@ export default function ProjectView({ project, vault }: ProjectViewProps) {
               mimeType: doc.mime || 'application/pdf',
             }));
             setDocuments(backendDocs);
+            
+            // Clear pending upload info once docs appear
+            if (pendingUploadInfo && backendDocs.length > 0) {
+              const allComplete = backendDocs.every(d => d.status === 'completed');
+              if (allComplete || backendDocs.length >= (pendingUploadInfo.files?.length || 0)) {
+                setPendingUploadInfo(null);
+                setIsUploading(false);
+                setUploadProgress("");
+                toast({
+                  title: "Upload Complete!",
+                  description: `${backendDocs.length} document(s) ready.`,
+                });
+              }
+            }
           }
         } catch (error) {
           console.error('Auto-refresh failed:', error);
@@ -119,7 +161,7 @@ export default function ProjectView({ project, vault }: ProjectViewProps) {
       
       return () => clearInterval(interval);
     }
-  }, [documents, project.id]);
+  }, [documents, project.id, pendingUploadInfo, toast]);
   
   // Rename dialogs
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -358,6 +400,23 @@ export default function ProjectView({ project, vault }: ProjectViewProps) {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Upload Progress Banner */}
+        {(isUploading || pendingUploadInfo) && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-700 dark:text-blue-300">
+                {uploadProgress || "Processing documents..."}
+              </p>
+              {pendingUploadInfo?.files && (
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  {pendingUploadInfo.files.length} file(s) being indexed. Page will update automatically.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

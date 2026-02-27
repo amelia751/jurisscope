@@ -500,3 +500,4 @@ Below are suggested column prompts organised by analysis type. Mix and match bas
 - Ask for a single, clear attribute per column
 - Use consistent value types (dates as dates, ratings as labels, lists as comma-separated)
 - For numeric columns, specify the unit or scale expected
+

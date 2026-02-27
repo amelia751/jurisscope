@@ -159,7 +159,7 @@ async def ensure_elasticsearch_index():
 
 
 # Import and include routers
-from routes import upload, ask, documents, agents, mcp, browser_upload, table_analysis
+from routes import upload, ask, documents, agents, mcp, browser_upload, table_analysis, a2a
 
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(browser_upload.router, prefix="/api", tags=["browser-upload"])
@@ -168,6 +168,7 @@ app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(agents.router, prefix="/api", tags=["agents"])
 app.include_router(mcp.router, prefix="/api", tags=["mcp"])
 app.include_router(table_analysis.router, prefix="/api", tags=["table-analysis"])
+app.include_router(a2a.router, prefix="/api", tags=["a2a"])
 
 
 # Global exception handler

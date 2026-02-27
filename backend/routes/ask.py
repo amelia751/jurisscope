@@ -1,6 +1,11 @@
 """
-Ask route for Q&A with hybrid search and citations.
+Ask route for Q&A with A2A (Agent-to-Agent) orchestration.
 POST /api/ask - Ask a question and get an answer with citations
+
+Multi-Agent Workflow:
+1. search-agent: Hybrid search (BM25 + vector) with reranking
+2. answer-agent: Generate answer using Claude/GPT via Elastic inference
+3. citation-agent: Extract and format precise citations
 
 Uses Elasticsearch Agent Builder inference endpoints for:
 - Embeddings: .jina-embeddings-v3
@@ -35,6 +40,14 @@ class Citation(BaseModel):
     url: str
 
 
+class AgentStep(BaseModel):
+    """A step in the A2A workflow."""
+    agent: str
+    action: str
+    duration_ms: int
+    result: str
+
+
 class AskRequest(BaseModel):
     """Request model for ask endpoint."""
     query: str
@@ -49,6 +62,7 @@ class AskResponse(BaseModel):
     citations: List[Citation]
     num_hits: int
     latency_ms: float
+    workflow: Optional[List[AgentStep]] = None  # A2A workflow steps
 
 
 def generate_answer_with_elastic(query: str, passages: List[dict]) -> str:
@@ -186,40 +200,41 @@ async def ask_question(request: AskRequest):
     """
     Ask a question and get an answer with citations.
     
-    Flow:
-    1. Generate query embedding with Elastic inference
-    2. Perform hybrid search (BM25 + kNN + RRF)
-    3. Rerank results for better relevance
-    4. Generate answer with Claude/GPT via Elastic inference
-    5. Return answer with properly formatted citations
+    A2A (Agent-to-Agent) Workflow:
+    1. search-agent: Hybrid search (BM25 + kNN) with reranking
+    2. answer-agent: Generate answer using Claude via Elastic inference
+    3. citation-agent: Extract and format precise citations
     """
     start_time = time.time()
     query_id = str(uuid.uuid4())
+    workflow = []
     
     try:
-        logger.info(f"Processing query [{query_id}]: {request.query}")
+        logger.info(f"[{query_id}] A2A orchestration starting: {request.query[:50]}...")
         
         # Initialize services
         embedding_service = EmbeddingService()
         es_service = ElasticsearchService()
         metadata_service = LocalMetadataService()
         
-        # Step 1: Generate query embedding
-        logger.info(f"[{query_id}] Generating query embedding...")
+        # ========== STEP 1: search-agent ==========
+        step1_start = time.time()
+        logger.info(f"[{query_id}] search-agent: Starting hybrid search...")
+        
+        # Generate query embedding
         query_embedding = embedding_service.generate_embedding(request.query)
         
-        # Step 2: Hybrid search - get more candidates for better reranking
-        logger.info(f"[{query_id}] Performing hybrid search...")
+        # Hybrid search
         search_results = es_service.hybrid_search(
             query_text=request.query,
             query_vector=query_embedding,
             project_id=request.project_id,
-            k=max(20, request.k * 4)  # Get many more for reranking to find best chunks
+            k=max(20, request.k * 4)
         )
         
         hits = search_results.get("hits", [])
         
-        # Deduplicate by chunk content (some chunks might be very similar)
+        # Deduplicate
         seen_texts = set()
         unique_hits = []
         for hit in hits:
@@ -228,7 +243,19 @@ async def ask_question(request: AskRequest):
                 seen_texts.add(text_hash)
                 unique_hits.append(hit)
         hits = unique_hits
-        logger.info(f"[{query_id}] Found {len(hits)} results")
+        
+        # Rerank for better relevance
+        reranked_hits = rerank_passages(request.query, hits)
+        top_hits = reranked_hits[:request.k]
+        
+        step1_duration = int((time.time() - step1_start) * 1000)
+        workflow.append(AgentStep(
+            agent="search-agent",
+            action="Hybrid search + rerank",
+            duration_ms=step1_duration,
+            result=f"Found {len(hits)} chunks, top {len(top_hits)} selected"
+        ))
+        logger.info(f"[{query_id}] search-agent: Complete ({step1_duration}ms)")
         
         if not hits:
             return AskResponse(
@@ -236,19 +263,29 @@ async def ask_question(request: AskRequest):
                 answer="I couldn't find any relevant information to answer your question. Please ensure documents have been uploaded to this project.",
                 citations=[],
                 num_hits=0,
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
+                workflow=workflow
             )
         
-        # Step 3: Rerank for better relevance
-        logger.info(f"[{query_id}] Reranking results...")
-        reranked_hits = rerank_passages(request.query, hits)
-        top_hits = reranked_hits[:request.k]  # Take top k after reranking
+        # ========== STEP 2: answer-agent ==========
+        step2_start = time.time()
+        logger.info(f"[{query_id}] answer-agent: Generating answer...")
         
-        # Step 4: Generate answer using Elastic inference
-        logger.info(f"[{query_id}] Generating answer with Elastic inference...")
         answer = generate_answer_with_elastic(request.query, top_hits)
         
-        # Step 5: Build citations with deep-link URLs
+        step2_duration = int((time.time() - step2_start) * 1000)
+        workflow.append(AgentStep(
+            agent="answer-agent",
+            action="Generate answer with Claude",
+            duration_ms=step2_duration,
+            result=f"Generated {len(answer)} char response"
+        ))
+        logger.info(f"[{query_id}] answer-agent: Complete ({step2_duration}ms)")
+        
+        # ========== STEP 3: citation-agent ==========
+        step3_start = time.time()
+        logger.info(f"[{query_id}] citation-agent: Building citations...")
+        
         citations = []
         for i, hit in enumerate(top_hits, 1):
             bbox_list = hit.get("bbox_list", [])
@@ -261,11 +298,9 @@ async def ask_question(request: AskRequest):
             page = hit.get("page", 1)
             chunk_id = hit.get("chunk_id", "")
             
-            # Build clean snippet from ACTUAL text sent to LLM (not ES highlight)
             text = hit.get("text", "")
-            # Use the same text the LLM saw, not ES highlighting
             snippet = text[:350] if len(text) > 350 else text
-            snippet = ' '.join(snippet.split())  # Normalize whitespace
+            snippet = ' '.join(snippet.split())
             if len(text) > 350:
                 snippet += "..."
             
@@ -279,6 +314,15 @@ async def ask_question(request: AskRequest):
             )
             citations.append(citation)
         
+        step3_duration = int((time.time() - step3_start) * 1000)
+        workflow.append(AgentStep(
+            agent="citation-agent",
+            action="Extract citations",
+            duration_ms=step3_duration,
+            result=f"Built {len(citations)} citations"
+        ))
+        logger.info(f"[{query_id}] citation-agent: Complete ({step3_duration}ms)")
+        
         # Log query
         latency_ms = (time.time() - start_time) * 1000
         metadata_service.log_query(
@@ -288,22 +332,23 @@ async def ask_question(request: AskRequest):
             results={
                 "num_hits": len(hits),
                 "latency_ms": latency_ms,
-                "agent_path": ["search-agent", "rerank", "answer-agent"]
+                "workflow": [s.dict() for s in workflow]
             }
         )
         
-        logger.info(f"[{query_id}] ✓ Query completed in {latency_ms:.0f}ms")
+        logger.info(f"[{query_id}] ✓ A2A complete in {latency_ms:.0f}ms")
         
         return AskResponse(
             query_id=query_id,
             answer=answer,
             citations=citations,
             num_hits=len(hits),
-            latency_ms=latency_ms
+            latency_ms=latency_ms,
+            workflow=workflow
         )
         
     except Exception as e:
-        logger.error(f"[{query_id}] Ask endpoint failed: {e}", exc_info=True)
+        logger.error(f"[{query_id}] A2A orchestration failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

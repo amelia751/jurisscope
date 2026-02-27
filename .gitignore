@@ -36,8 +36,13 @@ metadata/
 *.db
 *.sqlite
 
-# GCP credentials
+# GCP credentials & service accounts
 backend/gcp-credentials.json
+*-service-account.json
+*-credentials.json
+service-account.json
+*.serviceaccount.json
+jurisscope-*.json
 
 # Test scripts
 test-elasticsearch.js

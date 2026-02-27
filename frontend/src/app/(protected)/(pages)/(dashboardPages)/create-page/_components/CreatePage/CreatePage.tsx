@@ -375,134 +375,54 @@ export default function CreatePage({ onSelectOption }: CourseSelectionProps) {
                 
                 const project = projectResult.data;
                 
-                // Show initial toast
+                // Show toast and redirect IMMEDIATELY
                 toast({
                   title: "Project Created!",
-                  description: `Processing ${uploadedFiles.length} file(s)... This may take a moment.`,
+                  description: `Redirecting to vault... Files will process in the background.`,
                 });
 
-                // Upload files with streaming progress using SSE
-                let uploadSuccessful = false;
-                try {
-                  console.log("📤 Starting upload with streaming progress...");
-                  console.log("Files to upload:", uploadedFiles.length);
+                // Store files in sessionStorage for the vault page to pick up
+                const filesToUpload = uploadedFiles.map(f => ({
+                  name: f.file.name,
+                  path: f.path,
+                  size: f.file.size,
+                }));
+                sessionStorage.setItem(`pending_upload_${project.id}`, JSON.stringify({
+                  projectId: project.id,
+                  files: filesToUpload,
+                  timestamp: Date.now(),
+                }));
 
-                  const formData = new FormData();
-                  uploadedFiles.forEach((fileWithPath, index) => {
-                    console.log(`  [${index + 1}] Adding file:`, fileWithPath.file.name);
-                    formData.append('files', fileWithPath.file);
-                  });
-                  formData.append('project_id', project.id);
+                // Start upload in background (don't await)
+                const formData = new FormData();
+                uploadedFiles.forEach((fileWithPath) => {
+                  formData.append('files', fileWithPath.file);
+                });
+                formData.append('project_id', project.id);
 
-                  const folderMap: Record<string, string> = {};
-                  uploadedFiles.forEach((f) => {
-                    folderMap[f.file.name] = f.path;
-                  });
-                  formData.append('folder_paths', JSON.stringify(folderMap));
+                const folderMap: Record<string, string> = {};
+                uploadedFiles.forEach((f) => {
+                  folderMap[f.file.name] = f.path;
+                });
+                formData.append('folder_paths', JSON.stringify(folderMap));
 
-                  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8005';
-                  
-                  // Try streaming endpoint first for real-time progress
-                  try {
-                    const streamResponse = await fetch(`${backendUrl}/api/upload/browser/stream`, {
-                      method: 'POST',
-                      body: formData,
-                    });
-                    
-                    if (streamResponse.ok && streamResponse.body) {
-                      const reader = streamResponse.body.getReader();
-                      const decoder = new TextDecoder();
-                      let completedCount = 0;
-                      
-                      while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        
-                        const text = decoder.decode(value);
-                        const lines = text.split('\n').filter(line => line.startsWith('data: '));
-                        
-                        for (const line of lines) {
-                          try {
-                            const data = JSON.parse(line.substring(6));
-                            
-                            if (data.event === 'processing') {
-                              toast({
-                                title: `Processing ${data.index + 1}/${data.total}`,
-                                description: `📄 ${data.filename}`,
-                              });
-                            } else if (data.event === 'completed') {
-                              completedCount++;
-                              console.log(`✓ ${data.filename}: ${data.num_chunks} chunks`);
-                            } else if (data.event === 'failed') {
-                              console.error(`✗ ${data.filename}: ${data.error}`);
-                            } else if (data.event === 'done') {
-                              toast({
-                                title: "Upload Complete!",
-                                description: `${completedCount}/${data.total} files processed successfully.`,
-                              });
-                              uploadSuccessful = true;
-                            }
-                          } catch (e) {
-                            // Ignore parse errors
-                          }
-                        }
-                      }
-                    } else {
-                      throw new Error('Streaming not available');
-                    }
-                  } catch (streamError) {
-                    // Fallback to regular upload if streaming fails
-                    console.log("Streaming not available, using regular upload...");
-                    
-                    // Re-create FormData since it was consumed
-                    const formData2 = new FormData();
-                    uploadedFiles.forEach((fileWithPath) => {
-                      formData2.append('files', fileWithPath.file);
-                    });
-                    formData2.append('project_id', project.id);
-                    formData2.append('folder_paths', JSON.stringify(folderMap));
-                    
-                    const response = await fetch(`${backendUrl}/api/upload/browser`, {
-                      method: 'POST',
-                      body: formData2,
-                    });
-
-                    if (!response.ok) {
-                      const errorText = await response.text();
-                      throw new Error(`Upload failed: ${response.statusText}`);
-                    }
-
-                    const uploadResults = await response.json();
-                    const successful = uploadResults.filter((r: any) => r.status === 'completed').length;
-
-                    toast({
-                      title: "Upload Complete!",
-                      description: `${successful}/${uploadedFiles.length} files processed.`,
-                    });
-
-                    uploadSuccessful = true;
-                  }
-                  
-                  console.log("✅ Upload complete, redirecting...");
-
-                } catch (uploadError) {
-                  console.error("❌ Upload error:", uploadError);
-                  toast({
-                    title: "Upload Warning",
-                    description: `Project created but upload failed: ${uploadError instanceof Error ? uploadError.message : "Unknown error"}`,
-                    variant: "destructive",
-                  });
-                }
-
-                // Always redirect to project vault page to see uploaded files (even if upload failed, they can retry)
-                const vaultUrl = `/project/${project.id}/vault`;
-                console.log("🔄 REDIRECT: Navigating to:", vaultUrl);
-                console.log("🔄 REDIRECT: Project ID:", project.id);
-                console.log("🔄 REDIRECT: Router available:", !!router);
-                console.log("🔄 REDIRECT: Upload successful:", uploadSuccessful);
+                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8005';
                 
-                // Use window.location for immediate, guaranteed redirect
+                // Fire and forget - upload starts but we don't wait
+                fetch(`${backendUrl}/api/upload/browser`, {
+                  method: 'POST',
+                  body: formData,
+                }).then(response => {
+                  console.log("✅ Background upload completed:", response.status);
+                }).catch(error => {
+                  console.error("❌ Background upload failed:", error);
+                });
+
+                // Redirect immediately to vault page
+                const vaultUrl = `/project/${project.id}/vault`;
+                console.log("🔄 IMMEDIATE REDIRECT to:", vaultUrl);
                 window.location.href = vaultUrl;
+                
               } catch (error) {
                 console.error("Error creating project:", error);
                 toast({

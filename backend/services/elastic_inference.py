@@ -117,11 +117,13 @@ class ElasticInferenceService:
         full_messages.extend(messages)
         
         try:
+            # Use longer timeout for LLM calls (120 seconds)
             response = requests.post(
                 f"{self.base_url}/_inference/chat_completion/{endpoint}/_stream",
                 headers=self.headers,
                 json={"messages": full_messages},
-                stream=True
+                stream=True,
+                timeout=(30, 120)  # (connect timeout, read timeout)
             )
             response.raise_for_status()
             
@@ -143,6 +145,9 @@ class ElasticInferenceService:
             logger.debug(f"Chat completion: {len(full_text)} chars")
             return full_text
             
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Chat completion timed out: {e}")
+            raise Exception(f"LLM request timed out. Please try again with a shorter prompt.")
         except Exception as e:
             logger.error(f"Chat completion failed: {e}")
             raise

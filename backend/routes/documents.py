@@ -36,16 +36,34 @@ class DocumentResponse(BaseModel):
 # ==================== DOCUMENT ENDPOINTS ====================
 
 @router.get("/documents")
+@router.get("/documents")
 async def list_documents(project_id: Optional[str] = None):
-    """List all documents, optionally filtered by project."""
+    """List all documents, optionally filtered by project.
+    
+    First tries local storage, then falls back to Elasticsearch aggregation.
+    This ensures documents are found even when local storage is ephemeral (Cloud Run).
+    """
     try:
+        # Try local storage first
         firestore = FirestoreService()
         documents = firestore.list_documents(project_id=project_id)
+        
+        # If no documents found locally, try Elasticsearch
+        if not documents and project_id:
+            logger.info(f"No local documents found for project {project_id}, querying Elasticsearch...")
+            try:
+                es = ElasticsearchService()
+                es_docs = es.list_documents_by_project(project_id)
+                if es_docs:
+                    documents = es_docs
+                    logger.info(f"Found {len(documents)} documents in Elasticsearch for project {project_id}")
+            except Exception as es_error:
+                logger.warning(f"Elasticsearch query failed: {es_error}")
+        
         return {"documents": documents, "total": len(documents)}
     except Exception as e:
         logger.error(f"Failed to list documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/doc/{doc_id}")
 async def get_document(doc_id: str):

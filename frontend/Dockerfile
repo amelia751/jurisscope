@@ -1,9 +1,11 @@
-# Dockerfile for Clause Frontend (Next.js 15)
+# Dockerfile for JurisScope Frontend (Next.js 15) with Cloud SQL
 FROM node:20-alpine AS base
+
+# Install OpenSSL and other dependencies needed by Prisma
+RUN apk add --no-cache libc6-compat openssl openssl-dev
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
@@ -43,6 +45,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 
@@ -52,4 +55,3 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
-

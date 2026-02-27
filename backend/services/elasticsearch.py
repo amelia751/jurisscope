@@ -416,3 +416,65 @@ class ElasticsearchService:
         except Exception as e:
             logger.error(f"Failed to get index stats: {e}")
             return {"error": str(e)}
+    
+    def list_documents_by_project(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        List all unique documents in a project by aggregating from ES index.
+        This is used when local storage is ephemeral (Cloud Run).
+        """
+        try:
+            # Use aggregation to get unique documents
+            response = self.client.search(
+                index=self.index_name,
+                body={
+                    "size": 0,
+                    "query": {
+                        "term": {"project_id": project_id}
+                    },
+                    "aggs": {
+                        "unique_docs": {
+                            "terms": {
+                                "field": "doc_id",
+                                "size": 1000
+                            },
+                            "aggs": {
+                                "doc_info": {
+                                    "top_hits": {
+                                        "size": 1,
+                                        "_source": ["doc_id", "doc_title", "project_id"]
+                                    }
+                                },
+                                "chunk_count": {
+                                    "value_count": {"field": "chunk_id"}
+                                },
+                                "max_page": {
+                                    "max": {"field": "page"}
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+            
+            documents = []
+            buckets = response.get("aggregations", {}).get("unique_docs", {}).get("buckets", [])
+            
+            for bucket in buckets:
+                doc_id = bucket["key"]
+                top_hit = bucket["doc_info"]["hits"]["hits"][0]["_source"] if bucket["doc_info"]["hits"]["hits"] else {}
+                
+                documents.append({
+                    "id": doc_id,
+                    "project_id": project_id,
+                    "title": top_hit.get("doc_title", "Unknown"),
+                    "status": "completed",  # If it's in ES, it's processed
+                    "num_chunks": bucket["chunk_count"]["value"],
+                    "num_pages": int(bucket["max_page"]["value"]) if bucket["max_page"]["value"] else 1
+                })
+            
+            logger.info(f"Found {len(documents)} documents in ES for project {project_id}")
+            return documents
+            
+        except Exception as e:
+            logger.error(f"Failed to list documents from ES: {e}")
+            return []
